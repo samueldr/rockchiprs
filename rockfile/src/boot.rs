@@ -105,10 +105,11 @@ impl RkBootEntry {
 pub type RkBootHeaderBytes = [u8; 102];
 /// Boot header which can be found at the start of a boot file
 ///
-/// The header contains three entry types; 0x471 which are the blobs that should be uploaded to the
-/// bootrom sram initially to setup ddr memory; 0x472 the blobs that should be uploaded to the
-/// bootrom ddr, typically implementing the complete usb protocol. And finally the loader entry
-/// which are the blobs meant to be used for a normal boot
+/// The header contains three entry types;
+///
+///  - 0x471 which are the blobs that should be uploaded to the bootrom sram initially to setup ddr memory
+///  - 0x472 the blobs that should be uploaded to the bootrom ddr, typically implementing the complete usb protocol.
+///  - The loader entry which are the binaries, meant to be flashed by other tools, for a normal boot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RkBootHeader {
     pub tag: [u8; 4],
