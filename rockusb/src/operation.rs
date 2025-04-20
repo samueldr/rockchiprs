@@ -409,19 +409,6 @@ pub fn write_lba(start_sector: u32, write: &[u8]) -> UsbOperation<'_, Transferre
     )
 }
 
-/// Create operation to read from sdram
-///
-/// start_sector with [protocol::SECTOR_SIZE] sectors. the data to be read must be a multiple of
-/// [protocol::SECTOR_SIZE] bytes
-pub fn read_sdram(start_sector: u32, read: &mut [u8]) -> UsbOperation<'_, Transferred> {
-    // XXX drop alignment
-    assert_eq!(read.len() % 512, 0, "Not a multiple of 512: {}", read.len());
-    UsbOperation::new_read(
-        CommandBlock::read_sdram(start_sector, (read.len() / 512) as u16),
-        read,
-    )
-}
-
 #[cfg(test)]
 mod test {
     use super::*;

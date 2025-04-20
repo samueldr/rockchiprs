@@ -54,19 +54,6 @@ fn read_lba(mut transport: Transport, offset: u32, length: u16, path: &Path) -> 
     Ok(())
 }
 
-fn read_sdram(mut transport: Transport, offset: u32, length: u32, path: &Path) -> Result<()> {
-    let mut data = vec![0; length as usize * 512];
-    transport.read_sdram(offset, &mut data)?;
-
-    let mut file = std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(path)?;
-    file.write_all(&data)?;
-    Ok(())
-}
-
 fn write_lba(mut transport: Transport, offset: u32, length: u16, path: &Path) -> Result<()> {
     let mut data = vec![0; length as usize * 512];
 
@@ -247,13 +234,6 @@ enum Command {
     WriteBmap {
         path: PathBuf,
     },
-    ReadSdram {
-        #[clap(value_parser=maybe_hex::<u32>)]
-        offset: u32,
-        #[clap(value_parser=maybe_hex::<u32>)]
-        length: u32,
-        path: PathBuf,
-    },
     ChipInfo,
     FlashId,
     FlashInfo,
@@ -387,11 +367,6 @@ fn main() -> Result<()> {
             length,
             path,
         } => read_lba(transport, offset, length, &path),
-        Command::ReadSdram {
-            offset,
-            length,
-            path,
-        } => read_sdram(transport, offset, length, &path),
         Command::Write {
             offset,
             length,
