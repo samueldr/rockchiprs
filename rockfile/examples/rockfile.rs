@@ -98,14 +98,15 @@ fn parse_boot(path: &Path) -> Result<()> {
 }
 
 #[derive(Debug, clap::Subcommand)]
-enum Command {
+enum Commands {
+    /// Prints information about a Rockchip Boot File.
     BootFile { path: PathBuf },
 }
 
 #[derive(clap::Parser)]
 struct Opts {
     #[command(subcommand)]
-    command: Command,
+    command: Commands,
 }
 
 fn main() -> Result<()> {
@@ -113,6 +114,6 @@ fn main() -> Result<()> {
 
     // Commands that don't talk a device
     match opt.command {
-        Command::BootFile { path } => parse_boot(&path),
+        Commands::BootFile { path } => parse_boot(&path),
     }
 }
