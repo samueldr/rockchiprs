@@ -1,6 +1,7 @@
 use std::{
     fs::File,
-    io::{Read, Seek, SeekFrom},
+    fs::OpenOptions,
+    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -97,10 +98,61 @@ fn parse_boot(path: &Path) -> Result<()> {
     Ok(())
 }
 
+fn update_crc(path: &Path) -> Result<()> {
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)?;
+    let mut header: RkBootHeaderBytes = [0; 102];
+    file.read_exact(&mut header)?;
+
+    // Nominally validate by parsing the header.
+    // We don't want to clobber a random file's last four bytes.
+    RkBootHeader::from_bytes(&header).ok_or_else(|| anyhow!("Failed to parse header. Is this a Rockchip Boot file?"))?;
+
+    // The CRC is at the last four bytes
+    file.seek(SeekFrom::End(-4))?;
+
+    // We need the content length to re-compute the CRC, so save it.
+    let content_length: usize = file.stream_position().unwrap() as usize;
+
+    // Read the current CRC, we're going to show it to the user, and say whether we are updating it
+    // or not.
+    let mut file_crc_bytes = [0; 4];
+    file.read_exact(&mut file_crc_bytes)?;
+    let file_crc = u32::from_le_bytes(file_crc_bytes);
+
+    // The CRC is computed on everything from the start up to those last four bytes.
+    file.seek(SeekFrom::Start(0))?;
+
+    let mut data = vec![0; content_length];
+    file.read_exact(&mut data)?;
+
+    let crc = crc::Crc::<u32>::new(&CRC_32_RK);
+    let computed = crc.checksum(&data);
+
+    // Print the information.
+    println!("Original CRC: 0x{:x}", file_crc);
+    println!("     New CRC: 0x{:x}", computed);
+
+    // Maybe update...
+    if computed != file_crc {
+        println!("... updating!");
+        file.seek(SeekFrom::End(-4))?;
+        file.write(&computed.to_le_bytes())?;
+    } else {
+        println!("... already correct.");
+    };
+
+    Ok(())
+}
+
 #[derive(Debug, clap::Subcommand)]
 enum Commands {
     /// Prints information about a Rockchip Boot File.
     BootFile { path: PathBuf },
+    /// Updates the CRC of a Rockchip Boot File.
+    UpdateCrc { path: PathBuf },
 }
 
 #[derive(clap::Parser)]
@@ -115,5 +167,6 @@ fn main() -> Result<()> {
     // Commands that don't talk a device
     match opt.command {
         Commands::BootFile { path } => parse_boot(&path),
+        Commands::UpdateCrc { path } => update_crc(&path),
     }
 }
