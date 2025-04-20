@@ -122,6 +122,7 @@ pub struct RkBootHeader {
     pub entry_loader: RkBootHeaderEntry,
     pub sign_flag: u8,
     pub rc4_flag: u8,
+    pub rc4_471_flag: u8,
 }
 
 impl RkBootHeader {
@@ -130,7 +131,7 @@ impl RkBootHeader {
         let mut tag = [0u8; 4];
         bytes.copy_to_slice(&mut tag);
 
-        if &tag != b"BOOT" && &tag != b"LDR " {
+        if &tag != b"BOOT" && &tag != b"LDR " && &tag != b"RSAK" {
             return None;
         }
         let size = bytes.get_u16_le();
@@ -150,6 +151,7 @@ impl RkBootHeader {
 
         let sign_flag = bytes.get_u8();
         let rc4_flag = bytes.get_u8();
+        let rc4_471_flag = bytes.get_u8();
 
         Some(RkBootHeader {
             tag,
@@ -163,6 +165,7 @@ impl RkBootHeader {
             entry_loader,
             sign_flag,
             rc4_flag,
+            rc4_471_flag,
         })
     }
 }
