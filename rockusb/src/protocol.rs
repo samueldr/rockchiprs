@@ -269,6 +269,20 @@ impl CommandBlock {
         }
     }
 
+    pub fn read_sdram(start: u32, length: u16) -> CommandBlock {
+        CommandBlock {
+            tag: fastrand::u32(..),
+            transfer_length: length as u32,
+            flags: Direction::In,
+            lun: 0,
+            cdb_length: 0xa,
+            cd_code: CommandCode::ReadSDram,
+            cd_opcode: 0,
+            cd_address: start,
+            cd_length: length,
+        }
+    }
+
     pub fn reset_device(opcode: ResetOpcode) -> CommandBlock {
         CommandBlock {
             tag: fastrand::u32(..),

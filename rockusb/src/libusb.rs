@@ -246,6 +246,16 @@ impl Transport {
             .map(|t| t.into())
     }
 
+    /// read from the flash
+    ///
+    /// start_sector with [SECTOR_SIZE] sectors. the data to be read
+    /// must be a multiple of [SECTOR_SIZE] bytes
+    pub fn read_sdram(&mut self, start_sector: u32, read: &mut [u8]) -> Result<u32> {
+    // XXX drop alignment
+        self.handle_operation(crate::operation::read_sdram(start_sector, read))
+            .map(|t| t.into())
+    }
+
     /// Write a specific area while in maskrom mode; typically 0x471 or 0x472 data as retrieved from a
     /// rockchip boot file
     pub fn write_maskrom_area(&mut self, area: u16, data: &[u8]) -> Result<()> {
