@@ -10,6 +10,18 @@ use rockfile::boot::{
     RkBootEntry, RkBootEntryBytes, RkBootHeader, RkBootHeaderBytes, RkBootHeaderEntry,
 };
 
+// Parameters for the Rockchip-flavoured CRC32 check
+pub const CRC_32_RK: crc::Algorithm<u32> = crc::Algorithm {
+    width: 32,
+    poly: 0x04c10db7,
+    init: 0x00000000,
+    refin: false,
+    refout: false,
+    xorout: 0x00000000,
+    check: 0x00000000,
+    residue: 0x00000000,
+};
+
 fn parse_entry(header: RkBootHeaderEntry, name: &str, file: &mut File) -> Result<()> {
     for i in 0..header.count {
         let mut entry: RkBootEntryBytes = [0; 57];
@@ -33,6 +45,38 @@ fn parse_entry(header: RkBootHeaderEntry, name: &str, file: &mut File) -> Result
     Ok(())
 }
 
+fn parse_crc(file: &mut File) -> Result<()> {
+    // CRC is the last four bytes
+    file.seek(SeekFrom::End(-4))?;
+    let mut file_crc_bytes = [0; 4];
+    file.read_exact(&mut file_crc_bytes)?;
+
+    let file_crc = u32::from_le_bytes(file_crc_bytes);
+
+    // We need the length to re-compute the CRC.
+    let file_length: usize = file.stream_position().unwrap() as usize;
+
+    // Which is computed on everything beforehand
+    file.seek(SeekFrom::Start(0))?;
+
+    let mut data = vec![0; file_length - 4];
+    file.read_exact(&mut data)?;
+
+    let crc = crc::Crc::<u32>::new(&CRC_32_RK);
+    let computed = crc.checksum(&data);
+
+    // Print the information
+    println!("    File CRC: 0x{:x}", file_crc);
+    println!("Computed CRC: 0x{:x}", computed);
+    if computed == file_crc {
+        println!(" -> ok")
+    } else {
+        println!(" -> INVALID!")
+    }
+
+    Ok(())
+}
+
 fn parse_boot(path: &Path) -> Result<()> {
     let mut file = File::open(path)?;
     let mut header: RkBootHeaderBytes = [0; 102];
@@ -49,6 +93,7 @@ fn parse_boot(path: &Path) -> Result<()> {
     parse_entry(header.entry_471, "0x471", &mut file)?;
     parse_entry(header.entry_472, "0x472", &mut file)?;
     parse_entry(header.entry_loader, "loader", &mut file)?;
+    parse_crc(&mut file)?;
     Ok(())
 }
 
